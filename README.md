@@ -21,6 +21,8 @@ git clone https://github.com/haeri702/tetris-game_practice.git
 
 ## 조작법
 
+**PC — 키보드**
+
 | 키 | 동작 |
 |---|---|
 | ← → | 좌우로 이동 |
@@ -29,6 +31,19 @@ git clone https://github.com/haeri702/tetris-game_practice.git
 | Space | 하드 드롭 (바닥까지 한 번에 내리기) |
 | P | 일시정지 / 다시 시작 |
 | R | 게임 처음부터 다시 |
+
+**휴대폰 — 화면 버튼 또는 제스처**
+
+화면 아래 버튼으로 조작할 수 있고, 게임판을 직접 쓸어서 움직여도 됩니다.
+
+| 제스처 | 동작 |
+|---|---|
+| 좌우로 끌기 | 끈 만큼 좌우로 이동 |
+| 아래로 끌기 | 소프트 드롭 |
+| 톡 누르기 | 블록 회전 |
+| 위로 튕기기 | 하드 드롭 |
+
+화면 크기에 맞춰 게임판 크기가 자동으로 조정되므로, 작은 휴대폰에서도 스크롤 없이 한 화면에 들어옵니다.
 
 ## 게임 규칙
 
@@ -66,6 +81,7 @@ git clone https://github.com/haeri702/tetris-game_practice.git
 ```
 index.html    게임 전체 (HTML + CSS + JavaScript)
 preview.svg   README에 쓰는 게임 화면 이미지
+og-image.png  카카오톡 등에 링크를 공유할 때 뜨는 썸네일
 README.md     이 문서
 ```
 

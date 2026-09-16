@@ -2,8 +2,28 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <title>크렘린 테트리스</title>
+<meta name="description" content="성 바실리 대성당과 크렘린 성벽의 밤 풍경을 배경으로 한 클래식 테트리스. 설치 없이 브라우저에서 바로 플레이하세요.">
+<meta name="theme-color" content="#0d0f22">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="크렘린 테트리스">
+<meta property="og:title" content="크렘린 테트리스 (ТЕТРИС)">
+<meta property="og:description" content="모스크바의 밤을 배경으로 한 클래식 테트리스. 설치 없이 브라우저에서 바로 플레이하세요.">
+<meta property="og:url" content="https://haeri702.github.io/tetris-game_practice/">
+<meta property="og:image" content="https://haeri702.github.io/tetris-game_practice/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="크렘린 성벽과 성 바실리 대성당을 배경으로 한 테트리스 게임 화면">
+<meta property="og:locale" content="ko_KR">
+
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="크렘린 테트리스 (ТЕТРИС)">
+<meta name="twitter:description" content="모스크바의 밤을 배경으로 한 클래식 테트리스. 설치 없이 브라우저에서 바로 플레이하세요.">
+<meta name="twitter:image" content="https://haeri702.github.io/tetris-game_practice/og-image.png">
 <style>
   * { box-sizing: border-box; }
 
@@ -81,6 +101,7 @@
     display: block;
     border-radius: 3px;
     background: rgba(7, 5, 12, .90);
+    touch-action: none;
   }
 
   .panel { width: 168px; display: flex; flex-direction: column; gap: 14px; }
@@ -135,10 +156,56 @@
   }
   #ovText { margin: 0; font-size: 12px; color: #a8916a; font-family: system-ui, sans-serif; }
 
-  @media (max-width: 560px) {
-    h1 { font-size: 26px; letter-spacing: 8px; text-indent: 8px; }
-    .panel { width: 314px; }
-    .keys { line-height: 1.9; }
+  /* 터치 조작 버튼 — 데스크톱에서는 숨기고 좁은 화면에서만 노출 */
+  #touch { display: none; position: relative; z-index: 1; width: 100%; max-width: 420px; }
+  .pad { display: flex; gap: 8px; }
+  .pad + .pad { margin-top: 8px; }
+  .pad button {
+    flex: 1;
+    min-height: 54px;
+    font-family: Georgia, serif;
+    font-size: 20px;
+    color: #f0dcae;
+    border: 1px solid rgba(206,162,78,.34);
+    border-radius: 8px;
+    background: linear-gradient(rgba(62,26,34,.86), rgba(36,16,24,.86));
+    box-shadow: inset 0 1px 0 rgba(233,197,122,.16);
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    cursor: pointer;
+  }
+  .pad button:active { background: linear-gradient(rgba(96,42,52,.9), rgba(58,26,36,.9)); }
+  .pad.minor button { min-height: 38px; font-size: 12px; font-family: system-ui, sans-serif; color: #c8b493; }
+
+  @media (max-width: 620px) {
+    body {
+      justify-content: flex-start;
+      gap: 10px;
+      padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+    }
+    h1 { font-size: 22px; letter-spacing: 7px; text-indent: 7px; }
+    .sub { font-size: 9px; letter-spacing: 4px; }
+    main { flex-direction: column; align-items: center; gap: 10px; width: 100%; }
+
+    /* 정보 패널을 게임판 위쪽 가로 한 줄로 */
+    .panel {
+      order: -1;
+      width: 100%;
+      max-width: 420px;
+      flex-direction: row;
+      align-items: stretch;
+      gap: 8px;
+    }
+    .panel .box { flex: 1; padding: 6px 8px; }
+    .panel .box:first-child { flex: 0 0 auto; }
+    .label { font-size: 8px; letter-spacing: 1.5px; margin-bottom: 2px; }
+    .value { font-size: 17px; }
+    .keys { display: none; }
+
+    #touch { display: block; }
+    #skyline { height: 42vh; min-height: 200px; }
+    #snow { display: none; }
   }
 </style>
 </head>
@@ -189,6 +256,20 @@
     </div>
   </div>
 </main>
+
+<div id="touch">
+  <div class="pad">
+    <button id="bLeft" aria-label="왼쪽으로 이동">&#9668;</button>
+    <button id="bRotate" aria-label="회전">&#8635;</button>
+    <button id="bRight" aria-label="오른쪽으로 이동">&#9658;</button>
+    <button id="bDown" aria-label="한 칸 내리기">&#9660;</button>
+    <button id="bDrop" aria-label="바닥까지 내리기">&#10515;</button>
+  </div>
+  <div class="pad minor">
+    <button id="bPause">일시정지</button>
+    <button id="bReset">다시 시작</button>
+  </div>
+</div>
 
 <script>
 /* ---------- 배경: 성 바실리 대성당 & 크렘린 성벽 야경 ---------- */
@@ -345,9 +426,14 @@ buildSnow();
 
 /* ---------- 게임 ---------- */
 
-const COLS = 10, ROWS = 20, BLOCK = 30;
-const ctx = document.getElementById('board').getContext('2d');
-const nctx = document.getElementById('next').getContext('2d');
+const COLS = 10, ROWS = 20;
+const boardEl = document.getElementById('board');
+const nextEl = document.getElementById('next');
+const ctx = boardEl.getContext('2d');
+const nctx = nextEl.getContext('2d');
+
+// 화면 크기에 따라 결정되는 값들 (fitBoard 에서 갱신)
+let BLOCK = 30, NEXT_W = 126, NEXT_H = 120, NEXT_CELL = 22;
 
 const SHAPES = {
   I: [[0,0,0,0],[1,1,1,1],[0,0,0,0],[0,0,0,0]],
@@ -492,12 +578,13 @@ function hideOverlay() {
 }
 
 function drawCell(c, x, y, color, size) {
+  const edge = Math.max(2, Math.round(size * .1));
   c.fillStyle = color;
   c.fillRect(x * size, y * size, size, size);
   c.fillStyle = 'rgba(255,240,200,.26)';
-  c.fillRect(x * size, y * size, size, 3);
+  c.fillRect(x * size, y * size, size, edge);
   c.fillStyle = 'rgba(0,0,0,.20)';
-  c.fillRect(x * size, y * size + size - 3, size, 3);
+  c.fillRect(x * size, y * size + size - edge, size, edge);
   c.strokeStyle = 'rgba(0,0,0,.45)';
   c.lineWidth = 1;
   c.strokeRect(x * size + .5, y * size + .5, size - 1, size - 1);
@@ -543,7 +630,7 @@ function draw() {
 }
 
 function drawNext() {
-  const W = 126, H = 120, size = 22;
+  const W = NEXT_W, H = NEXT_H, size = NEXT_CELL;
   nctx.clearRect(0, 0, W, H);
   const cells = [];
   next.shape.forEach((row, y) => row.forEach((v, x) => { if (v) cells.push([x, y]); }));
@@ -555,6 +642,123 @@ function drawNext() {
   cells.forEach(([x, y]) => drawCell(nctx, x, y, COLORS[next.type], size));
   nctx.restore();
 }
+
+/* ---------- 화면 크기 대응 ---------- */
+
+function sizeCanvas(el, c, w, h) {
+  const dpr = window.devicePixelRatio || 1;
+  el.width = Math.round(w * dpr);
+  el.height = Math.round(h * dpr);
+  el.style.width = w + 'px';
+  el.style.height = h + 'px';
+  c.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+
+function fitBoard() {
+  const narrow = window.innerWidth <= 620;
+
+  // NEXT 캔버스를 먼저 확정해야 패널 높이를 정확히 잴 수 있다
+  if (narrow) { NEXT_CELL = 11; NEXT_W = 44; NEXT_H = 28; }
+  else        { NEXT_CELL = 22; NEXT_W = 126; NEXT_H = 120; }
+  sizeCanvas(nextEl, nctx, NEXT_W, NEXT_H);
+
+  if (narrow) {
+    const usedH = document.querySelector('header').offsetHeight
+                + document.querySelector('.panel').offsetHeight
+                + document.getElementById('touch').offsetHeight + 64;
+    const byHeight = (window.innerHeight - usedH) / ROWS;
+    const byWidth = (Math.min(window.innerWidth, 440) - 24 - 14) / COLS;
+    BLOCK = Math.max(13, Math.floor(Math.min(byWidth, byHeight)));
+  } else {
+    BLOCK = 30;
+  }
+
+  sizeCanvas(boardEl, ctx, COLS * BLOCK, ROWS * BLOCK);
+  draw();
+}
+
+window.addEventListener('resize', fitBoard);
+window.addEventListener('orientationchange', fitBoard);
+
+
+/* ---------- 터치 조작 ---------- */
+
+function togglePause() {
+  if (gameOver) return;
+  paused = !paused;
+  paused ? showOverlay('일시정지', '다시 누르면 이어서 진행됩니다') : hideOverlay();
+}
+
+function act(fn) {
+  if (gameOver || paused) return;
+  fn();
+  updateStats();
+  draw();
+}
+
+// 꾹 누르면 반복 입력되는 버튼
+function holdable(el, fn) {
+  let delay, repeat;
+  const stop = () => { clearTimeout(delay); clearInterval(repeat); };
+  el.addEventListener('pointerdown', e => {
+    e.preventDefault();
+    fn();
+    delay = setTimeout(() => { repeat = setInterval(fn, 90); }, 260);
+  });
+  ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => el.addEventListener(ev, stop));
+}
+
+const tap = (id, fn) => document.getElementById(id)
+  .addEventListener('pointerdown', e => { e.preventDefault(); fn(); });
+
+holdable(document.getElementById('bLeft'), () => act(() => move(-1)));
+holdable(document.getElementById('bRight'), () => act(() => move(1)));
+holdable(document.getElementById('bDown'), () => act(() => { if (softDrop()) score += 1; dropTimer = 0; }));
+tap('bRotate', () => act(tryRotate));
+tap('bDrop', () => act(hardDrop));
+document.getElementById('bPause').addEventListener('click', togglePause);
+document.getElementById('bReset').addEventListener('click', reset);
+
+// 게임판 위 제스처: 좌우로 끌면 이동, 아래로 끌면 소프트 드롭, 탭하면 회전, 위로 튕기면 하드 드롭
+let startX = 0, startY = 0, startT = 0, baseX = 0, baseY = 0, dragged = false;
+
+boardEl.addEventListener('touchstart', e => {
+  const t = e.changedTouches[0];
+  startX = baseX = t.clientX;
+  startY = baseY = t.clientY;
+  startT = Date.now();
+  dragged = false;
+}, { passive: true });
+
+boardEl.addEventListener('touchmove', e => {
+  if (gameOver || paused) return;
+  e.preventDefault();
+  const t = e.changedTouches[0];
+  const dx = t.clientX - baseX, dy = t.clientY - baseY;
+
+  if (Math.abs(dx) >= BLOCK) {
+    const steps = Math.trunc(dx / BLOCK);
+    for (let i = 0; i < Math.abs(steps); i++) move(Math.sign(steps));
+    baseX = t.clientX;
+    dragged = true;
+  }
+  if (dy >= BLOCK) {
+    for (let i = 0, n = Math.trunc(dy / BLOCK); i < n; i++) if (softDrop()) score += 1;
+    baseY = t.clientY;
+    dropTimer = 0;
+    dragged = true;
+  }
+  if (dragged) { updateStats(); draw(); }
+}, { passive: false });
+
+boardEl.addEventListener('touchend', e => {
+  if (gameOver || paused) return;
+  const t = e.changedTouches[0];
+  const dx = t.clientX - startX, dy = t.clientY - startY, dt = Date.now() - startT;
+  if (!dragged && Math.abs(dx) < 12 && Math.abs(dy) < 12 && dt < 300) act(tryRotate);
+  else if (dy < -60 && Math.abs(dy) > Math.abs(dx) && dt < 400) act(hardDrop);
+}, { passive: true });
+
 
 let last = 0;
 function loop(time) {
@@ -591,11 +795,7 @@ document.addEventListener('keydown', e => {
   const key = e.key.toLowerCase();
 
   if (key === 'r') { reset(); return; }
-  if (key === 'p' && !gameOver) {
-    paused = !paused;
-    paused ? showOverlay('일시정지', 'P 키를 눌러 계속') : hideOverlay();
-    return;
-  }
+  if (key === 'p') { togglePause(); return; }
   if (gameOver || paused) return;
 
   switch (e.key) {
@@ -612,6 +812,7 @@ document.addEventListener('keydown', e => {
 });
 
 reset();
+fitBoard();
 requestAnimationFrame(loop);
 </script>
 </body>
