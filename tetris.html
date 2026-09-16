@@ -1,0 +1,618 @@
+﻿<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>크렘린 테트리스</title>
+<style>
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    padding: 20px 16px;
+    overflow-x: hidden;
+    color: #f0e6d2;
+    font-family: Georgia, "Times New Roman", serif;
+    background:
+      radial-gradient(120% 80% at 50% 100%, #3b1620 0%, rgba(59,22,32,0) 60%),
+      linear-gradient(#070a16 0%, #0d0f22 38%, #1b1024 70%, #2a1322 100%);
+    background-attachment: fixed;
+  }
+
+  #sky, #skyline, #snow {
+    position: fixed;
+    left: 0; right: 0;
+    pointer-events: none;
+  }
+  #sky { top: 0; bottom: 0; }
+  #skyline { bottom: 0; height: 60vh; min-height: 340px; opacity: .82; }
+  #snow { top: 0; bottom: 0; overflow: hidden; }
+
+  .flake {
+    position: absolute;
+    top: -12px;
+    border-radius: 50%;
+    background: #fff;
+    animation: fall linear infinite;
+  }
+  @keyframes fall {
+    to { transform: translateY(110vh) translateX(24px); }
+  }
+
+  header, main { position: relative; z-index: 1; }
+
+  header { text-align: center; }
+  h1 {
+    margin: 0;
+    font-size: 34px;
+    letter-spacing: 12px;
+    text-indent: 12px;
+    font-weight: 700;
+    background: linear-gradient(#f4dc9a, #cfa24a 55%, #8d6220);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    text-shadow: 0 2px 14px rgba(199,150,60,.25);
+  }
+  .sub {
+    margin: 4px 0 0;
+    font-size: 11px;
+    letter-spacing: 5px;
+    color: #9b8355;
+    text-transform: uppercase;
+  }
+
+  main { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: center; gap: 22px; }
+
+  .board-wrap {
+    position: relative;
+    padding: 7px;
+    border-radius: 8px;
+    background: linear-gradient(160deg, #c9a24e, #6d4c1c 40%, #d9b969 70%, #5d4118);
+    box-shadow: 0 0 34px rgba(205,158,70,.22), 0 16px 40px rgba(0,0,0,.6);
+  }
+  canvas#board {
+    display: block;
+    border-radius: 3px;
+    background: rgba(7, 5, 12, .90);
+  }
+
+  .panel { width: 168px; display: flex; flex-direction: column; gap: 14px; }
+
+  .box {
+    padding: 11px 13px;
+    border-radius: 6px;
+    border: 1px solid rgba(206,162,78,.34);
+    background: linear-gradient(rgba(62,26,34,.80), rgba(36,16,24,.80));
+    box-shadow: inset 0 1px 0 rgba(233,197,122,.16), 0 6px 18px rgba(0,0,0,.45);
+  }
+  .label {
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: #c2a15f;
+    margin-bottom: 5px;
+    font-family: system-ui, sans-serif;
+  }
+  .value {
+    font-size: 25px;
+    font-weight: 700;
+    color: #f6e9c9;
+    font-variant-numeric: tabular-nums;
+  }
+  canvas#next { display: block; margin: 0 auto; background: rgba(9,7,16,.62); border-radius: 4px; }
+
+  .keys {
+    font-size: 12px;
+    line-height: 2;
+    color: #c8b493;
+    font-family: system-ui, sans-serif;
+  }
+  .keys b { color: #f0dcae; font-weight: 600; }
+
+  #overlay {
+    position: absolute; inset: 7px;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    text-align: center;
+    border-radius: 3px;
+    background: rgba(12, 8, 16, .90);
+  }
+  #overlay.show { display: flex; }
+  #ovTitle {
+    margin: 0;
+    font-size: 27px;
+    letter-spacing: 4px;
+    color: #eccf82;
+  }
+  #ovText { margin: 0; font-size: 12px; color: #a8916a; font-family: system-ui, sans-serif; }
+
+  @media (max-width: 560px) {
+    h1 { font-size: 26px; letter-spacing: 8px; text-indent: 8px; }
+    .panel { width: 314px; }
+    .keys { line-height: 1.9; }
+  }
+</style>
+</head>
+<body>
+
+<div id="sky"></div>
+<div id="skyline"></div>
+<div id="snow"></div>
+
+<header>
+  <h1>ТЕТРИС</h1>
+  <p class="sub">Москва &middot; 1984</p>
+</header>
+
+<main>
+  <div class="board-wrap">
+    <canvas id="board" width="300" height="600"></canvas>
+    <div id="overlay">
+      <h2 id="ovTitle">일시정지</h2>
+      <p id="ovText">P 키를 눌러 계속</p>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="box">
+      <div class="label">NEXT</div>
+      <canvas id="next" width="126" height="120"></canvas>
+    </div>
+    <div class="box">
+      <div class="label">SCORE</div>
+      <div class="value" id="score">0</div>
+    </div>
+    <div class="box">
+      <div class="label">LINES</div>
+      <div class="value" id="lines">0</div>
+    </div>
+    <div class="box">
+      <div class="label">LEVEL</div>
+      <div class="value" id="level">1</div>
+    </div>
+    <div class="box keys">
+      <b>&larr; &rarr;</b> 이동<br>
+      <b>&uarr;</b> 회전<br>
+      <b>&darr;</b> 소프트 드롭<br>
+      <b>Space</b> 하드 드롭<br>
+      <b>P</b> 일시정지<br>
+      <b>R</b> 다시 시작
+    </div>
+  </div>
+</main>
+
+<script>
+/* ---------- 배경: 성 바실리 대성당 & 크렘린 성벽 야경 ---------- */
+
+const GOLD_RIM = 'rgba(214,177,94,.34)';
+
+function domePath(cx, baseY, w, h) {
+  const hw = w / 2;
+  return `M ${cx - hw} ${baseY}
+    C ${cx - hw} ${baseY - h * .34} ${cx - w * .63} ${baseY - h * .56} ${cx - w * .29} ${baseY - h * .79}
+    C ${cx - w * .15} ${baseY - h * .90} ${cx - w * .05} ${baseY - h * .96} ${cx} ${baseY - h}
+    C ${cx + w * .05} ${baseY - h * .96} ${cx + w * .15} ${baseY - h * .90} ${cx + w * .29} ${baseY - h * .79}
+    C ${cx + w * .63} ${baseY - h * .56} ${cx + hw} ${baseY - h * .34} ${cx + hw} ${baseY} Z`;
+}
+
+let clipId = 0;
+function dome(cx, baseY, w, h, fill, stripe) {
+  const d = domePath(cx, baseY, w, h);
+  const id = 'dc' + (clipId++);
+  let s = `<clipPath id="${id}"><path d="${d}"/></clipPath>`;
+  s += `<path d="${d}" fill="${fill}"/>`;
+  if (stripe) {
+    s += `<g clip-path="url(#${id})" transform="rotate(22 ${cx} ${baseY - h / 2})">`;
+    for (let i = -8; i < 12; i++) {
+      s += `<rect x="${cx - w}" y="${baseY - h + i * (h / 6)}" width="${w * 2}" height="${h / 13}" fill="${stripe}"/>`;
+    }
+    s += `</g>`;
+  }
+  s += `<path d="${d}" fill="none" stroke="${GOLD_RIM}" stroke-width="1.4"/>`;
+  return s;
+}
+
+function crossMark(cx, topY, s) {
+  return `<g stroke="#caa457" stroke-width="${s * .15}" stroke-linecap="round" opacity=".85">
+    <line x1="${cx}" y1="${topY}" x2="${cx}" y2="${topY - s}"/>
+    <line x1="${cx - s * .33}" y1="${topY - s * .64}" x2="${cx + s * .33}" y2="${topY - s * .64}"/>
+  </g>`;
+}
+
+function drum(cx, topY, botY, w, fill) {
+  const hw = w / 2;
+  return `<rect x="${cx - hw}" y="${topY}" width="${w}" height="${botY - topY}" fill="${fill}"/>` +
+         `<rect x="${cx - hw}" y="${topY}" width="${w}" height="${botY - topY}" fill="none" stroke="${GOLD_RIM}" stroke-width="1"/>` +
+         `<rect x="${cx - hw - 3}" y="${topY}" width="${w + 6}" height="6" fill="#4a2e30"/>`;
+}
+
+function redStar(cx, cy, r) {
+  const pts = [];
+  for (let i = 0; i < 10; i++) {
+    const rad = i % 2 ? r * .42 : r;
+    const a = -Math.PI / 2 + i * Math.PI / 5;
+    pts.push(`${(cx + Math.cos(a) * rad).toFixed(1)},${(cy + Math.sin(a) * rad).toFixed(1)}`);
+  }
+  return `<polygon points="${pts.join(' ')}" fill="#a32f42" stroke="rgba(214,177,94,.55)" stroke-width="1"/>`;
+}
+
+function spireTower(cx, groundY, bodyTop, bodyW, spireTop, starR) {
+  const hw = bodyW / 2;
+  let s = `<rect x="${cx - hw}" y="${bodyTop}" width="${bodyW}" height="${groundY - bodyTop}" fill="#3d2129"/>`;
+  s += `<rect x="${cx - hw - 5}" y="${bodyTop}" width="${bodyW + 10}" height="7" fill="#4a2a30"/>`;
+  s += `<polygon points="${cx - hw - 5},${bodyTop} ${cx},${spireTop} ${cx + hw + 5},${bodyTop}" fill="#2f4740" stroke="${GOLD_RIM}" stroke-width="1"/>`;
+  if (starR > 0) s += redStar(cx, spireTop - starR - 4, starR);
+  const windows = Math.floor((groundY - bodyTop - 26) / 34);
+  for (let i = 0; i < windows; i++) {
+    s += `<rect x="${cx - 5}" y="${bodyTop + 26 + i * 34}" width="10" height="17" rx="5" fill="rgba(240,206,128,.30)"/>`;
+  }
+  return s;
+}
+
+function kremlinWall(y, groundY) {
+  let s = `<rect x="0" y="${y}" width="1600" height="${groundY - y}" fill="#42252e"/>`;
+  const mw = 36, gap = 15;
+  for (let x = 4; x < 1600; x += mw + gap) {
+    s += `<path d="M ${x} ${y} v -27 l ${mw / 2} 10 l ${mw / 2} -10 v 27 Z" fill="#42252e"/>`;
+  }
+  s += `<rect x="0" y="${y}" width="1600" height="2" fill="rgba(214,177,94,.14)"/>`;
+  return s;
+}
+
+/* 게임판은 화면 중앙을 차지하므로, 대성당은 왼쪽 / 크렘린 탑은 오른쪽에 두어
+   양옆으로 실루엣이 드러나게 한다. 가운데는 성벽만 길게 지나간다. */
+function buildSkyline() {
+  const G = 620, WALL = 500;
+  let s = '';
+
+  // 왼쪽: 성 바실리 대성당 — 바깥쪽 작은 탑부터
+  s += drum(120, 420, WALL, 44, '#402430') + dome(120, 420, 54, 58, '#93732f', 'rgba(244,220,154,.30)') + crossMark(120, 420 - 58, 15);
+  s += drum(478, 424, WALL, 42, '#402430') + dome(478, 424, 52, 56, '#2f4f77', 'rgba(226,214,190,.26)') + crossMark(478, 424 - 56, 15);
+
+  s += drum(196, 372, WALL, 56, '#452733') + dome(196, 372, 68, 76, '#2f6350', 'rgba(226,214,190,.28)') + crossMark(196, 372 - 76, 18);
+  s += drum(404, 378, WALL, 54, '#452733') + dome(404, 378, 66, 74, '#7d2f3c', 'rgba(226,214,190,.26)') + crossMark(404, 378 - 74, 18);
+
+  // 중앙 천막 지붕 탑
+  s += `<rect x="261" y="330" width="78" height="${WALL - 330}" fill="#4e2b37"/>`;
+  s += `<rect x="256" y="330" width="88" height="8" fill="#5c3440"/>`;
+  s += `<polygon points="256,330 300,168 344,330" fill="#5c2a33" stroke="${GOLD_RIM}" stroke-width="1.2"/>`;
+  s += dome(300, 168, 38, 44, '#8a6a2a', 'rgba(244,220,154,.32)') + crossMark(300, 168 - 44, 16);
+  for (let i = 0; i < 3; i++) {
+    s += `<rect x="295" y="${360 + i * 42}" width="10" height="20" rx="5" fill="rgba(240,206,128,.28)"/>`;
+  }
+
+  // 오른쪽: 스파스카야 탑과 주변 돔
+  s += drum(1200, 392, WALL, 50, '#402430') + dome(1200, 392, 60, 66, '#93732f', 'rgba(244,220,154,.28)') + crossMark(1200, 392 - 66, 16);
+  s += drum(1404, 400, WALL, 48, '#402430') + dome(1404, 400, 58, 62, '#2f6350', 'rgba(226,214,190,.26)') + crossMark(1404, 400 - 62, 16);
+  s += spireTower(1300, WALL, 320, 78, 156, 13);
+  // 시계
+  s += `<circle cx="1300" cy="366" r="19" fill="#20141c" stroke="#b8933f" stroke-width="2.2"/>`;
+  s += `<g stroke="#e0c079" stroke-width="2" stroke-linecap="round">
+          <line x1="1300" y1="366" x2="1300" y2="354"/>
+          <line x1="1300" y1="366" x2="1309" y2="370"/>
+        </g>`;
+
+  // 가운데 성벽 위 작은 망루
+  s += spireTower(620, WALL, 432, 48, 380, 0);
+  s += spireTower(980, WALL, 438, 46, 388, 0);
+
+  s += kremlinWall(WALL, G);
+
+  return `<svg viewBox="0 0 1600 620" preserveAspectRatio="xMidYMax meet"
+            xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;display:block">${s}</svg>`;
+}
+
+function buildStars() {
+  let s = '';
+  s += `<circle cx="86%" cy="13%" r="72" fill="#f2e6c4" opacity=".06"/>`;
+  s += `<circle cx="86%" cy="13%" r="33" fill="#f2e6c4" opacity=".82"/>`;
+  for (let i = 0; i < 90; i++) {
+    const x = Math.random() * 100, y = Math.random() * 62;
+    const r = Math.random() * 1.2 + .4;
+    s += `<circle cx="${x}%" cy="${y}%" r="${r}" fill="#fff" opacity="${(Math.random() * .5 + .18).toFixed(2)}"/>`;
+  }
+  return `<svg xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;display:block">${s}</svg>`;
+}
+
+function buildSnow() {
+  const snow = document.getElementById('snow');
+  for (let i = 0; i < 34; i++) {
+    const f = document.createElement('span');
+    const size = Math.random() * 2.6 + 1.4;
+    f.className = 'flake';
+    f.style.left = Math.random() * 100 + '%';
+    f.style.width = f.style.height = size + 'px';
+    f.style.opacity = (Math.random() * .3 + .12).toFixed(2);
+    f.style.animationDuration = (Math.random() * 12 + 11) + 's';
+    f.style.animationDelay = (-Math.random() * 20) + 's';
+    snow.appendChild(f);
+  }
+}
+
+document.getElementById('skyline').innerHTML = buildSkyline();
+document.getElementById('sky').innerHTML = buildStars();
+buildSnow();
+
+
+/* ---------- 게임 ---------- */
+
+const COLS = 10, ROWS = 20, BLOCK = 30;
+const ctx = document.getElementById('board').getContext('2d');
+const nctx = document.getElementById('next').getContext('2d');
+
+const SHAPES = {
+  I: [[0,0,0,0],[1,1,1,1],[0,0,0,0],[0,0,0,0]],
+  J: [[1,0,0],[1,1,1],[0,0,0]],
+  L: [[0,0,1],[1,1,1],[0,0,0]],
+  O: [[1,1],[1,1]],
+  S: [[0,1,1],[1,1,0],[0,0,0]],
+  T: [[0,1,0],[1,1,1],[0,0,0]],
+  Z: [[1,1,0],[0,1,1],[0,0,0]],
+};
+const COLORS = {
+  I: '#46b6cf', J: '#4f70cd', L: '#df8b32',
+  O: '#e0bb45', S: '#4da85f', T: '#9a5bc9', Z: '#cf4450',
+};
+
+let grid, piece, next, bag, score, lines, level, dropTimer, gameOver, paused;
+
+function newGrid() {
+  return Array.from({ length: ROWS }, () => Array(COLS).fill(null));
+}
+
+function nextFromBag() {
+  if (!bag || bag.length === 0) {
+    bag = Object.keys(SHAPES);
+    for (let i = bag.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [bag[i], bag[j]] = [bag[j], bag[i]];
+    }
+  }
+  const type = bag.pop();
+  return { type, shape: SHAPES[type].map(r => [...r]), x: 0, y: 0 };
+}
+
+function spawn() {
+  piece = next;
+  next = nextFromBag();
+  piece.x = Math.floor((COLS - piece.shape[0].length) / 2);
+  piece.y = piece.type === 'I' ? -1 : 0;
+  if (collides(piece.shape, piece.x, piece.y)) {
+    gameOver = true;
+    showOverlay('게임 오버', 'R 키를 눌러 다시 시작');
+  }
+}
+
+function collides(shape, px, py) {
+  for (let y = 0; y < shape.length; y++) {
+    for (let x = 0; x < shape[y].length; x++) {
+      if (!shape[y][x]) continue;
+      const nx = px + x, ny = py + y;
+      if (nx < 0 || nx >= COLS || ny >= ROWS) return true;
+      if (ny >= 0 && grid[ny][nx]) return true;
+    }
+  }
+  return false;
+}
+
+function rotate(shape) {
+  const n = shape.length;
+  const out = Array.from({ length: n }, () => Array(n).fill(0));
+  for (let y = 0; y < n; y++)
+    for (let x = 0; x < n; x++)
+      out[x][n - 1 - y] = shape[y][x];
+  return out;
+}
+
+function tryRotate() {
+  const rotated = rotate(piece.shape);
+  for (const dx of [0, -1, 1, -2, 2]) {
+    if (!collides(rotated, piece.x + dx, piece.y)) {
+      piece.shape = rotated;
+      piece.x += dx;
+      return;
+    }
+  }
+}
+
+function move(dx) {
+  if (!collides(piece.shape, piece.x + dx, piece.y)) piece.x += dx;
+}
+
+function softDrop() {
+  if (!collides(piece.shape, piece.x, piece.y + 1)) {
+    piece.y++;
+    return true;
+  }
+  lock();
+  return false;
+}
+
+function hardDrop() {
+  while (!collides(piece.shape, piece.x, piece.y + 1)) {
+    piece.y++;
+    score += 2;
+  }
+  lock();
+}
+
+function lock() {
+  piece.shape.forEach((row, y) => row.forEach((v, x) => {
+    if (v && piece.y + y >= 0) grid[piece.y + y][piece.x + x] = piece.type;
+  }));
+  clearLines();
+  spawn();
+}
+
+function clearLines() {
+  let cleared = 0;
+  for (let y = ROWS - 1; y >= 0; y--) {
+    if (grid[y].every(cell => cell)) {
+      grid.splice(y, 1);
+      grid.unshift(Array(COLS).fill(null));
+      cleared++;
+      y++;
+    }
+  }
+  if (cleared) {
+    score += [0, 100, 300, 500, 800][cleared] * level;
+    lines += cleared;
+    level = Math.floor(lines / 10) + 1;
+    updateStats();
+  }
+}
+
+function dropInterval() {
+  return Math.max(100, 1000 - (level - 1) * 80);
+}
+
+function updateStats() {
+  document.getElementById('score').textContent = score;
+  document.getElementById('lines').textContent = lines;
+  document.getElementById('level').textContent = level;
+}
+
+function showOverlay(title, text) {
+  document.getElementById('ovTitle').textContent = title;
+  document.getElementById('ovText').textContent = text;
+  document.getElementById('overlay').classList.add('show');
+}
+
+function hideOverlay() {
+  document.getElementById('overlay').classList.remove('show');
+}
+
+function drawCell(c, x, y, color, size) {
+  c.fillStyle = color;
+  c.fillRect(x * size, y * size, size, size);
+  c.fillStyle = 'rgba(255,240,200,.26)';
+  c.fillRect(x * size, y * size, size, 3);
+  c.fillStyle = 'rgba(0,0,0,.20)';
+  c.fillRect(x * size, y * size + size - 3, size, 3);
+  c.strokeStyle = 'rgba(0,0,0,.45)';
+  c.lineWidth = 1;
+  c.strokeRect(x * size + .5, y * size + .5, size - 1, size - 1);
+}
+
+function draw() {
+  ctx.clearRect(0, 0, COLS * BLOCK, ROWS * BLOCK);
+
+  ctx.strokeStyle = 'rgba(206,162,78,.10)';
+  ctx.lineWidth = 1;
+  for (let x = 1; x < COLS; x++) {
+    ctx.beginPath();
+    ctx.moveTo(x * BLOCK + .5, 0);
+    ctx.lineTo(x * BLOCK + .5, ROWS * BLOCK);
+    ctx.stroke();
+  }
+  for (let y = 1; y < ROWS; y++) {
+    ctx.beginPath();
+    ctx.moveTo(0, y * BLOCK + .5);
+    ctx.lineTo(COLS * BLOCK, y * BLOCK + .5);
+    ctx.stroke();
+  }
+
+  grid.forEach((row, y) => row.forEach((type, x) => {
+    if (type) drawCell(ctx, x, y, COLORS[type], BLOCK);
+  }));
+
+  if (!gameOver) {
+    let ghostY = piece.y;
+    while (!collides(piece.shape, piece.x, ghostY + 1)) ghostY++;
+    ctx.globalAlpha = .20;
+    piece.shape.forEach((row, y) => row.forEach((v, x) => {
+      if (v && ghostY + y >= 0) drawCell(ctx, piece.x + x, ghostY + y, COLORS[piece.type], BLOCK);
+    }));
+    ctx.globalAlpha = 1;
+
+    piece.shape.forEach((row, y) => row.forEach((v, x) => {
+      if (v && piece.y + y >= 0) drawCell(ctx, piece.x + x, piece.y + y, COLORS[piece.type], BLOCK);
+    }));
+  }
+
+  drawNext();
+}
+
+function drawNext() {
+  const W = 126, H = 120, size = 22;
+  nctx.clearRect(0, 0, W, H);
+  const cells = [];
+  next.shape.forEach((row, y) => row.forEach((v, x) => { if (v) cells.push([x, y]); }));
+  const xs = cells.map(c => c[0]), ys = cells.map(c => c[1]);
+  const offX = (W - (Math.max(...xs) - Math.min(...xs) + 1) * size) / 2 - Math.min(...xs) * size;
+  const offY = (H - (Math.max(...ys) - Math.min(...ys) + 1) * size) / 2 - Math.min(...ys) * size;
+  nctx.save();
+  nctx.translate(offX, offY);
+  cells.forEach(([x, y]) => drawCell(nctx, x, y, COLORS[next.type], size));
+  nctx.restore();
+}
+
+let last = 0;
+function loop(time) {
+  const delta = time - last;
+  last = time;
+  if (!gameOver && !paused) {
+    dropTimer += delta;
+    if (dropTimer > dropInterval()) {
+      dropTimer = 0;
+      softDrop();
+    }
+    draw();
+  }
+  requestAnimationFrame(loop);
+}
+
+function reset() {
+  grid = newGrid();
+  bag = [];
+  score = 0;
+  lines = 0;
+  level = 1;
+  dropTimer = 0;
+  gameOver = false;
+  paused = false;
+  next = nextFromBag();
+  spawn();
+  updateStats();
+  hideOverlay();
+  draw();
+}
+
+document.addEventListener('keydown', e => {
+  const key = e.key.toLowerCase();
+
+  if (key === 'r') { reset(); return; }
+  if (key === 'p' && !gameOver) {
+    paused = !paused;
+    paused ? showOverlay('일시정지', 'P 키를 눌러 계속') : hideOverlay();
+    return;
+  }
+  if (gameOver || paused) return;
+
+  switch (e.key) {
+    case 'ArrowLeft':  move(-1); break;
+    case 'ArrowRight': move(1); break;
+    case 'ArrowUp':    tryRotate(); break;
+    case 'ArrowDown':  if (softDrop()) score += 1; dropTimer = 0; break;
+    case ' ':          hardDrop(); break;
+    default: return;
+  }
+  e.preventDefault();
+  updateStats();
+  draw();
+});
+
+reset();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
